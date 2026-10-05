@@ -2,32 +2,34 @@
   theme.css -- your theme overrides. This is the file to edit to
   retheme the site.
 
-  Every design token lives in src/styles/tokens.css (colors, type
-  scale, spacing, layout, shadows) with its default value. Override any
-  of them here: declarations in this file are unlayered, so they always
-  beat the @layer base defaults in tokens.css.
+  Every design token lives in src/styles/tokens.css (colors, window
+  manager gaps and borders, type scale, spacing, layout) with its default
+  value. Override any of them here: declarations in this file are
+  unlayered, so they always beat the @layer base / @layer wm defaults.
 
-  Colors are defined with light-dark(). Overriding with a plain color
-  changes light and dark mode at once; use light-dark(<light>, <dark>)
-  to set different values per mode.
+  Colors come from the active Omarchy palette. To change which palette
+  visitors see first, or hide the picker, edit src/theme.config.ts. To
+  tweak a palette, override its raw --om-* variables for that palette.
 
   Webfonts are loaded in astro.config.mjs (--font-body, --font-mono).
-  Swap the loaded font there; use overrides here for system fonts or a
-  separate heading face.
 
-  Example:
+  Examples:
 
   :root {
-    --color-brand: light-dark(#0f766e, #2dd4bf);
-    --font-heading: "Iowan Old Style", Georgia, serif;
-    --radius: 8px;
+    --wm-gap-out: 16px;            more breathing room around windows
+    --wm-border-width: 3px;        chunkier window borders
+    --font-heading: var(--font-body);  sans-serif headings
+  }
+
+  :root[data-palette="catppuccin-latte"] {
+    --om-accent: #8839ef;          mauve instead of blue
   }
 */
 
 :root {
 }
 
-/* Keep the signed-in Admin link separated from the primary navigation. */
+/* Keep the signed-in Admin link separated from the other bar modules. */
 .nav-admin {
-	margin-inline-start: var(--spacing-5);
+	margin-inline-start: var(--spacing-2);
 }

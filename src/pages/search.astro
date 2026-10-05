@@ -19,8 +19,8 @@ const { items: results } = query
 	title={query ? `Search: ${query}` : "Search"}
 	description="Search blog posts"
 >
-	<section class="search-page">
-		<h1 class="search-title">Search</h1>
+	<section class="search-page is-active" data-window="~/search" data-window-meta="grep">
+		<h1 class="search-title prompt">Search</h1>
 
 		<form method="get" action="/search" class="search-form">
 			<label for="site-search-query" class="visually-hidden"
@@ -73,11 +73,11 @@ const { items: results } = query
 </Base>
 
 <style>
-	.search-page {
+	.search-page > * {
 		max-width: var(--max-width);
-		margin: 0 auto;
-		padding: var(--spacing-8) var(--spacing-6) var(--spacing-16);
+		margin-inline: auto;
 	}
+
 
 	.visually-hidden {
 		position: absolute;

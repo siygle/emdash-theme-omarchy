@@ -10,7 +10,10 @@ import { createPublicPageContext } from "emdash/page";
 import LiveSearch from "emdash/ui/search";
 import { Font } from "astro:assets";
 import { resolveBlogSiteIdentity } from "../utils/site-identity";
+import { palettes } from "../palettes";
+import { PALETTE_COOKIE, themeConfig } from "../theme.config";
 import "../styles/tokens.css";
+import "../styles/wm.css";
 import "../styles/theme.css";
 
 interface Props {
@@ -80,89 +83,146 @@ const pageCtx = createPublicPageContext({
 
 // Check if user is logged in (for showing admin link)
 const isLoggedIn = !!Astro.locals.user;
+
+// Menu items become numbered Hyprland workspaces; the current page's is active
+const pathname = Astro.url.pathname;
+function isCurrent(url: string) {
+	const target = new URL(url, Astro.url);
+	if (target.origin !== Astro.url.origin) return false;
+	if (target.pathname === "/") return pathname === "/";
+	return pathname === target.pathname || pathname.startsWith(`${target.pathname}/`);
+}
+
+const defaultPalette =
+	palettes.find((palette) => palette.id === themeConfig.defaultPalette) ?? palettes[0];
+const paletteIds = palettes.map((palette) => palette.id);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-palette={defaultPalette.id}>
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<Font cssVariable="--font-body" preload />
-		<Font cssVariable="--font-mono" />
+		<Font cssVariable="--font-mono" preload />
 		<title>{fullTitle}</title>
 		<EmDashHead page={pageCtx} />
-		<script is:inline>
-			// Apply an explicit theme choice immediately to prevent flash.
-			// With no cookie, color-scheme: light dark follows the OS.
-			(function () {
-				var row = document.cookie.split("; ").find(function (item) {
-					return item.startsWith("theme=");
-				});
-				var theme = row ? row.slice(6) : null;
-				if (theme === "dark" || theme === "light") {
-					document.documentElement.classList.add(theme);
-				}
-			})();
+		<script is:inline define:vars={{ paletteIds, cookieName: PALETTE_COOKIE }}>
+			// Apply a saved palette before first paint to prevent a flash.
+			var row = document.cookie.split("; ").find(function (item) {
+				return item.startsWith(cookieName + "=");
+			});
+			var saved = row ? row.slice(cookieName.length + 1) : null;
+			if (saved && paletteIds.indexOf(saved) !== -1) {
+				document.documentElement.dataset.palette = saved;
+			}
 		</script>
 	</head>
 	<body>
 		<EmDashBodyStart page={pageCtx} />
-		<header class="site-header">
-			<nav class="nav">
-				<a href="/" class="site-title">
+		<header class="waybar">
+			<nav class="waybar-group waybar-left" aria-label="Primary">
+				<a href="/" class="waybar-brand">
 					{
 						siteLogo ? (
 							<img
 								src={siteLogo.url}
 								alt={siteLogo.alt || siteTitle}
-								class="site-logo-img"
+								class="waybar-logo"
 							/>
 						) : (
-							siteTitle
+							<span class="waybar-brand-mark" aria-hidden="true">
+								◆
+							</span>
 						)
 					}
+					<span class="waybar-brand-title">{siteTitle}</span>
 				</a>
-				<div class="nav-right">
-					<LiveSearch
-						placeholder="Search..."
-						class="site-search"
-						inputClass="site-search-input"
-						resultsClass="site-search-results"
-						resultClass="site-search-result"
-						collections={["posts", "pages"]}
-					/>
-					<div class="nav-links">
-						{
-							menu?.items.map((item) => (
-								<a
-									href={item.url}
-									target={item.target}
-									rel={
-										item.target === "_blank" ? "noopener noreferrer" : undefined
-									}
-								>
-									{item.label}
-								</a>
-							))
-						}
-					</div>
-				</div>
+				{
+					menu?.items.map((item, index) => (
+						<a
+							href={item.url}
+							target={item.target}
+							rel={item.target === "_blank" ? "noopener noreferrer" : undefined}
+							class="workspace"
+							aria-current={isCurrent(item.url) ? "page" : undefined}
+						>
+							<span class="workspace-num">{index + 1}</span>
+							<span class="workspace-label">{item.label}</span>
+						</a>
+					))
+				}
+			</nav>
+
+			{
+				themeConfig.clock && (
+					<time class="waybar-clock" data-waybar-clock aria-hidden="true" />
+				)
+			}
+
+			<div class="waybar-group waybar-right">
+				<LiveSearch
+					placeholder="search ⌘K"
+					class="site-search"
+					inputClass="site-search-input"
+					resultsClass="site-search-results"
+					resultClass="site-search-result"
+					collections={["posts", "pages"]}
+				/>
+				{
+					themeConfig.paletteSwitcher && (
+						<details class="palette-picker" data-palette-picker>
+							<summary class="waybar-module" aria-label="Choose color palette">
+								<span class="palette-dot" aria-hidden="true" />
+								<span class="palette-current" data-palette-current>
+									{defaultPalette.name}
+								</span>
+							</summary>
+							<div class="palette-menu" role="listbox" aria-label="Color palettes">
+								{palettes.map((palette) => (
+									<button
+										type="button"
+										role="option"
+										class="palette-option"
+										data-palette-option={palette.id}
+										aria-selected={palette.id === defaultPalette.id ? "true" : "false"}
+									>
+										<span
+											class="palette-swatch"
+											style={`--sw-bg: ${palette.swatch[0]}; --sw-fg: ${palette.swatch[1]}; --sw-accent: ${palette.swatch[2]};`}
+											aria-hidden="true"
+										/>
+										<span class="palette-name">{palette.name}</span>
+										<span class="palette-mode">{palette.mode}</span>
+									</button>
+								))}
+							</div>
+						</details>
+					)
+				}
+				<a href="/rss.xml" class="waybar-module" aria-label="RSS feed">
+					<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+						><circle cx="6.18" cy="17.82" r="2.18"></circle><path
+							d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"
+						></path></svg
+					>
+				</a>
 				{
 					isLoggedIn && (
-						<a href="/_emdash/admin" class="nav-admin">
-							Admin
+						<a href="/_emdash/admin" class="waybar-module nav-admin">
+							admin
 						</a>
 					)
 				}
-			</nav>
+			</div>
 		</header>
 
-		<main>
+		<main class="desktop">
 			<slot />
 		</main>
 
 		<footer class="site-footer">
-			<div class="footer-inner">
+			<div class="footer-pane" data-window="~/.config/site">
 				<div class="footer-grid">
 					<div class="footer-brand">
 						<a href="/" class="footer-logo">
@@ -181,7 +241,7 @@ const isLoggedIn = !!Astro.locals.user;
 						<p class="footer-tagline">{siteTagline}</p>
 					</div>
 					<div class="footer-nav">
-						<h2 class="footer-heading">Navigate</h2>
+						<h2 class="footer-heading">navigate</h2>
 						<ul class="footer-links">
 							{
 								menu?.items.map((item) => (
@@ -203,162 +263,101 @@ const isLoggedIn = !!Astro.locals.user;
 						</ul>
 					</div>
 					<div class="footer-nav">
-						<h2 class="footer-heading">Connect</h2>
+						<h2 class="footer-heading">connect</h2>
 						<ul class="footer-links">
-							<li><a href="/rss.xml">RSS Feed</a></li>
+							<li><a href="/rss.xml">rss feed</a></li>
 						</ul>
 					</div>
 					<div class="footer-widgets-section">
 						<WidgetArea name="footer" />
 					</div>
 				</div>
-				<div class="footer-bottom">
-					<p class="footer-copyright">
-						Powered by <a href="https://emdashcms.com">EmDash</a>
-					</p>
-					<div class="theme-switcher">
-						<button
-							type="button"
-							class="theme-btn"
-							data-theme="light"
-							aria-label="Light mode"
-						>
-							<svg
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><circle cx="12" cy="12" r="5"></circle><line
-									x1="12"
-									y1="1"
-									x2="12"
-									y2="3"></line><line x1="12" y1="21" x2="12" y2="23"
-								></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"
-								></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"
-								></line><line x1="1" y1="12" x2="3" y2="12"></line><line
-									x1="21"
-									y1="12"
-									x2="23"
-									y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"
-								></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"
-								></line></svg
-							>
-						</button>
-						<button
-							type="button"
-							class="theme-btn"
-							data-theme="dark"
-							aria-label="Dark mode"
-						>
-							<svg
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-								></path></svg
-							>
-						</button>
-						<button
-							type="button"
-							class="theme-btn"
-							data-theme="system"
-							aria-label="System theme"
-						>
-							<svg
-								width="16"
-								height="16"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><rect x="2" y="3" width="20" height="14" rx="2" ry="2"
-								></rect><line x1="8" y1="21" x2="16" y2="21"></line><line
-									x1="12"
-									y1="17"
-									x2="12"
-									y2="21"></line></svg
-							>
-						</button>
-					</div>
+			</div>
+			<div class="statusline">
+				<div class="statusline-bar">
+					<span><span class="statusline-ok">●</span> {siteTitle}</span>
+					<span>
+						powered by <a href="https://emdashcms.com">EmDash</a>
+						<span class="statusline-sep">│</span>
+						<span data-palette-current>{defaultPalette.name}</span>
+					</span>
 				</div>
 			</div>
 		</footer>
 
 		<script>
-			// Theme switcher
-			const themeBtns =
-				document.querySelectorAll<HTMLButtonElement>(".theme-btn");
-			const root = document.documentElement;
+			import { PALETTE_COOKIE } from "../theme.config";
 
-			function setCookie(
-				name: string,
-				value: string,
-				maxAge: number = 31536000,
-			) {
+			// Palette picker: set <html data-palette>, remember it, sync labels
+			function setCookie(name: string, value: string, maxAge = 31536000) {
 				const secure = location.protocol === "https:" ? "; Secure" : "";
-				if (value === "") {
-					document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax${secure}`;
-				} else {
-					document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
-				}
+				document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`;
 			}
 
-			function setTheme(theme: string) {
-				if (theme === "system") {
-					setCookie("theme", "");
-					root.classList.remove("light", "dark");
-				} else {
-					setCookie("theme", theme);
-					root.classList.remove("light", "dark");
-					root.classList.add(theme);
-				}
-				updateActiveBtn(theme);
-			}
-
-			function updateActiveBtn(theme: string) {
-				themeBtns.forEach((btn) => {
-					const active = btn.dataset.theme === theme;
-					btn.classList.toggle("active", active);
-					btn.setAttribute("aria-pressed", String(active));
+			function syncPaletteUi() {
+				const active = document.documentElement.dataset.palette;
+				document.querySelectorAll<HTMLButtonElement>("[data-palette-option]").forEach((option) => {
+					const selected = option.dataset.paletteOption === active;
+					option.setAttribute("aria-selected", String(selected));
+					if (selected) {
+						const name = option.querySelector(".palette-name")?.textContent ?? "";
+						document.querySelectorAll("[data-palette-current]").forEach((label) => {
+							label.textContent = name;
+						});
+					}
 				});
 			}
 
-			function getStoredTheme(): string {
-				const row = document.cookie
-					.split("; ")
-					.find((item) => item.startsWith("theme="));
-				return row?.slice(6) || "system";
-			}
-
-			// Initialize
-			const storedTheme = getStoredTheme();
-			setTheme(storedTheme);
-
-			themeBtns.forEach((btn) => {
-				btn.addEventListener("click", () => {
-					setTheme(btn.dataset.theme || "system");
+			document.querySelectorAll<HTMLButtonElement>("[data-palette-option]").forEach((option) => {
+				option.addEventListener("click", () => {
+					const id = option.dataset.paletteOption;
+					if (!id) return;
+					document.documentElement.dataset.palette = id;
+					setCookie(PALETTE_COOKIE, id);
+					syncPaletteUi();
+					option.closest("details")?.removeAttribute("open");
 				});
 			});
+
+			// Close the picker on outside click or Escape
+			const picker = document.querySelector<HTMLDetailsElement>("[data-palette-picker]");
+			document.addEventListener("click", (event) => {
+				if (picker?.open && !picker.contains(event.target as Node)) picker.open = false;
+			});
+			document.addEventListener("keydown", (event) => {
+				if (event.key === "Escape" && picker?.open) {
+					picker.open = false;
+					picker.querySelector("summary")?.focus();
+				}
+			});
+
+			syncPaletteUi();
+
+			// Waybar clock (client-side: the server's clock is UTC)
+			const clock = document.querySelector<HTMLElement>("[data-waybar-clock]");
+			if (clock) {
+				const format = new Intl.DateTimeFormat(undefined, {
+					weekday: "short",
+					day: "2-digit",
+					month: "short",
+					hour: "2-digit",
+					minute: "2-digit",
+				});
+				const tick = () => {
+					clock.textContent = format.format(new Date()).replaceAll(",", "");
+				};
+				tick();
+				setInterval(tick, 30_000);
+			}
 		</script>
 
 		<style is:global>
 			/*
-			 * Establish layer order: "base" has lower priority than unlayered
-			 * styles, so theme.css overrides always win regardless of source
-			 * order in the bundled CSS.
+			 * Establish layer order: "base" (template defaults) < "wm" (window
+			 * manager chrome) < unlayered styles, so theme.css overrides always
+			 * win regardless of source order in the bundled CSS.
 			 */
-			@layer base;
+			@layer base, wm;
 
 			@layer base {
 				*:where(:not([class*="emdash"]):not([class*="ec-"])),
@@ -387,24 +386,6 @@ const isLoggedIn = !!Astro.locals.user;
 				ul,
 				ol {
 					padding: 0;
-				}
-
-				/*
-				 * Design tokens live in src/styles/tokens.css. Colors are
-				 * defined with light-dark(); these rules pin the scheme when
-				 * the footer switcher sets an explicit choice. With no class,
-				 * color-scheme: light dark follows the OS preference. The
-				 * @supports guard keeps the toggle from forcing dark UA form
-				 * controls on browsers stuck on the plain-light fallback.
-				 */
-				@supports (color: light-dark(#000, #fff)) {
-					:root.light {
-						color-scheme: light;
-					}
-
-					:root.dark {
-						color-scheme: dark;
-					}
 				}
 
 				html {
@@ -456,131 +437,170 @@ const isLoggedIn = !!Astro.locals.user;
 				}
 
 				::selection {
-					background: var(--color-brand);
-					color: var(--color-on-brand);
+					background: var(--color-border);
+					color: var(--color-text);
+				}
+
+				:focus-visible {
+					outline: 2px solid var(--color-brand);
+					outline-offset: 2px;
 				}
 			}
 		</style>
 
 		<style>
-			.site-header {
+			/* ── Waybar ── */
+			.waybar {
 				position: sticky;
 				top: 0;
 				z-index: 100;
-				background: color-mix(in srgb, var(--color-bg) 65%, transparent);
-				backdrop-filter: blur(12px);
-				-webkit-backdrop-filter: blur(12px);
-				border-bottom: 1px solid var(--color-border-subtle);
-			}
-
-			.nav {
+				height: var(--wm-bar-height);
 				display: flex;
+				align-items: center;
 				justify-content: space-between;
-				align-items: center;
-				max-width: var(--wide-width);
-				margin: 0 auto;
-				padding: var(--spacing-4) var(--spacing-6);
-				height: var(--nav-height);
-			}
-
-			.site-title {
-				font-size: var(--font-size-lg);
-				font-weight: 600;
-				color: var(--color-text);
-				text-decoration: none;
-				letter-spacing: var(--tracking-snug);
-			}
-
-			.site-title:hover {
-				color: var(--color-brand);
-			}
-
-			.site-logo-img {
-				height: 48px;
-				width: auto;
-				display: block;
-				margin: -8px 0;
-			}
-
-			.nav-right {
-				display: flex;
-				align-items: center;
-				gap: var(--spacing-6);
-				margin-inline-start: auto;
-			}
-
-			.nav-links {
-				display: flex;
-				gap: var(--spacing-5);
-				font-size: var(--font-size-sm);
-			}
-
-			.nav-links a {
-				text-decoration: none;
-				color: var(--color-text);
-				transition: color var(--transition-fast);
-			}
-
-			.nav-links a:hover {
-				color: var(--color-brand);
-			}
-
-			.nav-admin {
-				font-size: var(--font-size-sm);
+				gap: var(--spacing-2);
+				padding-inline: var(--wm-gap-out);
+				background: color-mix(in srgb, var(--color-bg-subtle) 92%, transparent);
+				backdrop-filter: blur(6px);
+				border-bottom: 1px solid var(--color-border);
+				font-family: var(--font-ui);
+				font-size: var(--font-size-xs);
 				color: var(--color-text-secondary);
-				text-decoration: none;
-				transition: color var(--transition-fast);
 			}
 
-			.nav-admin:hover {
+			.waybar-group {
+				display: flex;
+				align-items: center;
+				gap: 0.2rem;
+				min-width: 0;
+			}
+
+			.waybar-brand {
+				display: inline-flex;
+				align-items: center;
+				gap: var(--spacing-2);
+				margin-inline-end: var(--spacing-2);
 				color: var(--color-text);
+				font-weight: 700;
+				white-space: nowrap;
 			}
 
-			/* Search styling */
-			.site-search {
+			.waybar-brand:hover {
+				color: var(--color-brand);
+			}
+
+			.waybar-brand-mark {
+				color: var(--color-brand);
+			}
+
+			.waybar-logo {
+				height: 1.25rem;
+				width: auto;
+			}
+
+			.workspace,
+			.waybar-module {
+				display: inline-flex;
+				align-items: center;
+				gap: 0.35rem;
+				height: 1.5rem;
+				padding-inline: var(--spacing-2);
+				color: var(--color-muted);
+				white-space: nowrap;
+				transition:
+					color var(--transition-fast),
+					background-color var(--transition-fast);
+			}
+
+			.workspace:hover,
+			.waybar-module:hover {
+				color: var(--color-text);
+				background: var(--color-border);
+			}
+
+			.workspace-num {
+				opacity: 0.7;
+			}
+
+			.workspace[aria-current="page"] {
+				color: var(--color-on-brand);
+				background: var(--color-brand);
+			}
+
+			.workspace[aria-current="page"] .workspace-num {
+				opacity: 1;
+			}
+
+			.waybar-module svg {
+				width: 0.95rem;
+				height: 0.95rem;
+			}
+
+			.waybar-clock {
+				position: absolute;
+				left: 50%;
+				transform: translateX(-50%);
+				color: var(--color-text);
+				pointer-events: none;
+			}
+
+			/* Search lives in the bar as a compact module */
+			:global(.waybar .site-search) {
 				position: relative;
 				width: var(--search-input-width);
 				--emdash-search-border-focus: var(--color-brand);
 			}
 
-			:global(.site-search-input) {
+			:global(.waybar .site-search .site-search-input) {
 				width: var(--search-input-width);
-				padding: var(--spacing-2) var(--spacing-3);
-				font-family: var(--font-body);
-				font-size: var(--font-size-sm);
+				height: 1.5rem;
+				padding: 0 var(--spacing-2);
+				font-family: var(--font-ui);
+				font-size: var(--font-size-xs);
 				border: 1px solid var(--color-border);
-				border-radius: var(--radius);
+				border-radius: 0;
 				background: var(--color-bg);
 				color: var(--color-text);
-				transition:
-					border-color var(--transition-fast),
-					box-shadow var(--transition-fast);
+				transition: border-color var(--transition-fast);
 			}
 
-			:global(.site-search-input)::placeholder {
+			:global(.waybar .site-search .site-search-input)::placeholder {
 				color: var(--color-muted);
 			}
 
-			:global(.site-search-input):focus,
-			:global(.site-search-input):focus-visible {
+			:global(.waybar .site-search .site-search-input):focus,
+			:global(.waybar .site-search .site-search-input):focus-visible {
 				outline: none;
 				border-color: var(--color-brand) !important;
-				box-shadow: 0 0 0 3px var(--color-brand-ring);
 			}
 
 			:global(.site-search-results) {
 				position: absolute;
-				top: 100%;
-				left: 0;
+				top: calc(100% + var(--wm-gap-out));
 				right: 0;
-				margin-top: var(--spacing-2);
+				width: min(26rem, calc(100vw - 2 * var(--wm-gap-out)));
+				padding-top: var(--wm-title-height);
 				background: var(--color-bg);
-				border: 1px solid var(--color-border);
-				border-radius: var(--radius-lg);
-				box-shadow: var(--shadow-lg);
-				max-height: 400px;
+				border: var(--wm-border-width) solid transparent;
+				border-image: var(--wm-border-active) 1;
+				max-height: 420px;
 				overflow-y: auto;
 				z-index: 1000;
+			}
+
+			:global(.site-search-results)::before {
+				content: "~/search";
+				position: absolute;
+				top: 0;
+				inset-inline: 0;
+				height: var(--wm-title-height);
+				display: flex;
+				align-items: center;
+				padding-inline: var(--spacing-3);
+				font-size: 0.75rem;
+				color: var(--color-brand);
+				background: var(--color-bg-subtle);
+				border-bottom: 1px solid var(--color-border);
 			}
 
 			:global(.site-search-results .emdash-live-search-loading),
@@ -613,21 +633,21 @@ const isLoggedIn = !!Astro.locals.user;
 
 			:global(.site-search-result .emdash-live-search-result-title) {
 				display: block;
-				font-weight: 500;
+				font-family: var(--font-body);
+				font-weight: 600;
 				font-size: var(--font-size-sm);
 			}
 
 			:global(.site-search-result .emdash-live-search-result-collection) {
 				display: block;
-				font-size: var(--font-size-xs);
-				color: var(--color-muted);
-				text-transform: uppercase;
-				letter-spacing: var(--tracking-wide);
+				font-size: 0.7rem;
+				color: var(--color-brand);
 				margin-top: 2px;
 			}
 
 			:global(.site-search-result .emdash-live-search-result-snippet) {
 				display: block;
+				font-family: var(--font-body);
 				font-size: var(--font-size-sm);
 				color: var(--color-muted);
 				margin-top: var(--spacing-1);
@@ -637,66 +657,158 @@ const isLoggedIn = !!Astro.locals.user;
 			:global(.site-search-result .emdash-live-search-result-snippet mark) {
 				font-weight: 600;
 				color: var(--color-text);
+				background: color-mix(in srgb, var(--om-yellow) 35%, transparent);
 			}
 
-			main {
-				min-height: calc(100vh - var(--nav-height) - 300px);
+			/* Palette picker */
+			.palette-picker {
+				position: relative;
 			}
 
-			/* Footer */
-			.site-footer {
+			.palette-picker summary {
+				list-style: none;
+				cursor: pointer;
+			}
+
+			.palette-picker summary::-webkit-details-marker {
+				display: none;
+			}
+
+			.palette-picker[open] summary {
+				color: var(--color-text);
+				background: var(--color-border);
+			}
+
+			.palette-dot {
+				width: 0.7rem;
+				height: 0.7rem;
+				background: var(--color-brand);
+				box-shadow: inset -0.35rem 0 0 var(--color-text);
+			}
+
+			.palette-menu {
+				position: absolute;
+				top: calc(100% + var(--wm-gap-out));
+				right: 0;
+				width: 16rem;
+				max-height: min(28rem, 70vh);
+				overflow-y: auto;
+				padding: calc(var(--wm-title-height) + var(--spacing-1)) var(--spacing-1) var(--spacing-1);
+				background: var(--color-bg);
+				border: var(--wm-border-width) solid transparent;
+				border-image: var(--wm-border-active) 1;
+				z-index: 1000;
+			}
+
+			.palette-menu::before {
+				content: "omarchy-theme-set";
+				position: absolute;
+				top: 0;
+				inset-inline: 0;
+				height: var(--wm-title-height);
+				display: flex;
+				align-items: center;
+				padding-inline: var(--spacing-3);
+				font-size: 0.75rem;
+				color: var(--color-brand);
 				background: var(--color-bg-subtle);
-				border-top: 1px solid var(--color-border-subtle);
+				border-bottom: 1px solid var(--color-border);
 			}
 
-			.footer-inner {
+			.palette-option {
+				display: grid;
+				grid-template-columns: auto 1fr auto;
+				align-items: center;
+				gap: var(--spacing-2);
+				width: 100%;
+				padding: var(--spacing-1) var(--spacing-2);
+				font: inherit;
+				text-align: left;
+				color: var(--color-text-secondary);
+				background: transparent;
+				border: 0;
+				cursor: pointer;
+			}
+
+			.palette-option:hover,
+			.palette-option:focus-visible {
+				color: var(--color-text);
+				background: var(--color-surface);
+			}
+
+			.palette-option[aria-selected="true"] {
+				color: var(--color-on-brand);
+				background: var(--color-brand);
+			}
+
+			.palette-swatch {
+				width: 1.6rem;
+				height: 0.9rem;
+				background: linear-gradient(
+					90deg,
+					var(--sw-bg) 0 40%,
+					var(--sw-fg) 40% 70%,
+					var(--sw-accent) 70%
+				);
+				outline: 1px solid var(--color-border);
+			}
+
+			.palette-mode {
+				font-size: 0.7rem;
+				opacity: 0.7;
+			}
+
+			/* ── Footer: a config pane + the status line ── */
+			.site-footer {
+				width: 100%;
 				max-width: var(--wide-width);
-				margin: 0 auto;
-				padding: var(--spacing-16) var(--spacing-6) var(--spacing-8);
+				margin-inline: auto;
+				display: flex;
+				flex-direction: column;
+				gap: calc(var(--wm-gap-in) * 2);
+			}
+
+			.footer-pane {
+				margin-inline: var(--wm-gap-out);
 			}
 
 			.footer-grid {
 				display: grid;
 				grid-template-columns: 2fr 1fr 1fr 1fr;
-				gap: var(--spacing-12);
-				margin-bottom: var(--spacing-12);
-			}
-
-			.footer-brand {
-				max-width: 280px;
+				gap: var(--spacing-8);
 			}
 
 			.footer-logo {
+				display: inline-block;
+				font-family: var(--font-ui);
 				font-size: var(--font-size-lg);
-				font-weight: 600;
+				font-weight: 700;
 				color: var(--color-text);
-				text-decoration: none;
-				letter-spacing: var(--tracking-snug);
+				margin-bottom: var(--spacing-2);
 			}
 
 			.footer-logo-img {
-				height: 24px;
+				max-height: 32px;
 				width: auto;
 			}
 
 			.footer-tagline {
-				margin-top: var(--spacing-3);
-				font-size: var(--font-size-sm);
 				color: var(--color-muted);
-				line-height: var(--leading-relaxed);
-			}
-
-			.footer-nav {
-				min-width: 0;
+				font-size: var(--font-size-sm);
+				max-width: 32ch;
 			}
 
 			.footer-heading {
+				font-family: var(--font-ui);
 				font-size: var(--font-size-xs);
-				font-weight: 500;
-				text-transform: uppercase;
-				letter-spacing: var(--tracking-wider);
-				color: var(--color-muted);
-				margin-bottom: var(--spacing-4);
+				font-weight: 700;
+				color: var(--color-text);
+				margin-bottom: var(--spacing-3);
+			}
+
+			.footer-heading::before {
+				content: "❯ ";
+				color: var(--color-prompt);
 			}
 
 			.footer-links {
@@ -708,14 +820,13 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			.footer-links a {
+				font-family: var(--font-ui);
+				font-size: var(--font-size-xs);
 				color: var(--color-text-secondary);
-				text-decoration: none;
-				font-size: var(--font-size-sm);
-				transition: color var(--transition-fast);
 			}
 
 			.footer-links a:hover {
-				color: var(--color-text);
+				color: var(--color-brand);
 			}
 
 			.footer-widgets-section :global(.widget-area) {
@@ -727,12 +838,11 @@ const isLoggedIn = !!Astro.locals.user;
 			}
 
 			.footer-widgets-section :global(.widget__title) {
+				font-family: var(--font-ui);
 				font-size: var(--font-size-xs);
-				font-weight: 500;
-				text-transform: uppercase;
-				letter-spacing: var(--tracking-wider);
-				color: var(--color-muted);
-				margin-bottom: var(--spacing-4);
+				font-weight: 700;
+				color: var(--color-text);
+				margin-bottom: var(--spacing-3);
 			}
 
 			.footer-widgets-section :global(.widget__content) {
@@ -741,150 +851,41 @@ const isLoggedIn = !!Astro.locals.user;
 				line-height: var(--leading-relaxed);
 			}
 
-			.footer-bottom {
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-				padding-top: var(--spacing-6);
-				border-top: 1px solid var(--color-border);
-			}
-
-			.footer-copyright {
-				font-size: var(--font-size-sm);
-				color: var(--color-muted);
-			}
-
-			.footer-copyright a {
-				color: var(--color-text-secondary);
-			}
-
-			/* Theme switcher */
-			.theme-switcher {
-				display: flex;
-				gap: var(--spacing-1);
-				padding: var(--spacing-1);
-				background: var(--color-surface);
-				border-radius: var(--radius);
-			}
-
-			.theme-btn {
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				width: 32px;
-				height: 28px;
-				background: transparent;
-				border: none;
-				color: var(--color-muted);
-				border-radius: var(--radius);
-				cursor: pointer;
-				transition: all var(--transition-fast);
-			}
-
-			.theme-btn:hover {
-				color: var(--color-text-secondary);
-			}
-
-			.theme-btn.active {
-				background: var(--color-bg);
-				color: var(--color-text);
-				box-shadow: var(--shadow-sm);
-			}
-
-			.theme-btn svg {
-				width: 16px;
-				height: 16px;
+			@media (max-width: 1100px) {
+				.waybar-clock {
+					display: none;
+				}
 			}
 
 			@media (max-width: 900px) {
 				.footer-grid {
 					grid-template-columns: 1fr 1fr;
-					gap: var(--spacing-8);
 				}
 
 				.footer-brand {
-					grid-column: span 2;
-					max-width: none;
+					grid-column: 1 / -1;
+				}
+
+				.palette-current {
+					display: none;
 				}
 			}
 
-			@media (max-width: 640px) {
-				.site-header {
-					position: relative;
-					border-bottom: none;
+			@media (max-width: 760px) {
+				.workspace-label,
+				.waybar-brand-title {
+					display: none;
 				}
 
-				.nav {
-					display: grid;
-					grid-template-columns: minmax(0, 1fr) auto;
-					align-items: center;
-					height: auto;
-					column-gap: var(--spacing-3);
-					row-gap: var(--spacing-2);
-					padding: var(--spacing-3) var(--spacing-4);
+				:global(.waybar .site-search),
+				:global(.waybar .site-search .site-search-input) {
+					width: 7.5rem;
 				}
+			}
 
-				.site-title {
-					grid-column: 1;
-					grid-row: 1;
-					font-size: var(--font-size-base);
-					min-width: 0;
-				}
-
-				.nav-right {
-					grid-column: 1 / -1;
-					grid-row: 2;
-					display: grid;
-					row-gap: var(--spacing-2);
-				}
-
-				.site-search {
-					grid-column: 1;
-					width: 100%;
-					max-width: none;
-				}
-
-				:global(.site-search-input) {
-					width: 100% !important;
-					padding: var(--spacing-1) var(--spacing-2) !important;
-					font-size: var(--font-size-sm) !important;
-				}
-
-				.nav-links {
-					grid-column: 1;
-					display: flex;
-					column-gap: var(--spacing-3);
-					row-gap: var(--spacing-1);
-					flex-wrap: wrap;
-					justify-content: flex-start;
-				}
-
-				.nav-admin {
-					grid-column: 2;
-					grid-row: 1;
-					justify-self: end;
-					font-size: var(--font-size-xs);
-					margin-inline-start: 0;
-					white-space: nowrap;
-				}
-
+			@media (max-width: 480px) {
 				.footer-grid {
 					grid-template-columns: 1fr;
-				}
-
-				.footer-brand {
-					grid-column: span 1;
-				}
-
-				.footer-bottom {
-					flex-direction: column;
-					gap: var(--spacing-4);
-					text-align: center;
-				}
-
-				.footer-controls {
-					flex-wrap: wrap;
-					justify-content: center;
 				}
 			}
 		</style>

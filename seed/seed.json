@@ -2,9 +2,9 @@
 	"$schema": "https://emdashcms.com/seed.schema.json",
 	"version": "1",
 	"meta": {
-		"name": "Blog Starter",
-		"description": "A blog with posts and pages",
-		"author": "EmDash"
+		"name": "Omarchy Blog",
+		"description": "A blog with posts and pages, styled like an Omarchy desktop",
+		"author": "siygle"
 	},
 	"settings": {
 		"title": "My Blog",

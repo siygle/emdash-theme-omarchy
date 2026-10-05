@@ -54,8 +54,8 @@ const filteredPosts = posts.map((post) => ({
 	description={`All posts tagged with ${term.label}`}
 >
 	<section class="archive-section">
-		<header class="archive-header">
-			<span class="archive-label">Tag</span>
+		<header class="archive-header is-active" data-window={`~/tag/${term.slug}`} data-window-meta="tag">
+			<span class="archive-label">ls --tag</span>
 			<h1 class="archive-title">{term.label}</h1>
 		</header>
 
@@ -96,42 +96,42 @@ const filteredPosts = posts.map((post) => ({
 
 <style>
 	.archive-section {
-		max-width: var(--wide-width);
-		margin: 0 auto;
-		padding: var(--spacing-12) var(--spacing-6);
-	}
-
-	.archive-header {
-		margin-bottom: var(--spacing-12);
-		padding-bottom: var(--spacing-8);
-		border-bottom: 1px solid var(--color-border-subtle);
+		display: flex;
+		flex-direction: column;
+		gap: calc(var(--wm-gap-in) * 2);
 	}
 
 	.archive-label {
 		display: block;
+		font-family: var(--font-ui);
 		font-size: var(--font-size-xs);
-		font-weight: 500;
-		color: var(--color-brand);
-		text-transform: uppercase;
-		letter-spacing: var(--tracking-wider);
+		color: var(--color-muted);
 		margin-bottom: var(--spacing-2);
 	}
 
+	.archive-label::before {
+		content: "$ ";
+		color: var(--color-prompt);
+	}
+
 	.archive-title {
-		font-size: var(--font-size-4xl);
+		font-size: var(--font-size-3xl);
 		font-weight: var(--font-weight-display);
 		letter-spacing: var(--tracking-tight);
-		margin-bottom: var(--spacing-2);
 	}
 
 	.posts-grid {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: var(--spacing-12) var(--spacing-8);
+		gap: calc(var(--wm-gap-in) * 2);
 	}
 
 	.no-posts {
+		padding: var(--spacing-4);
+		font-family: var(--font-ui);
 		color: var(--color-muted);
+		background: var(--color-bg);
+		border: var(--wm-border-width) solid var(--wm-border);
 	}
 
 	@media (max-width: 900px) {

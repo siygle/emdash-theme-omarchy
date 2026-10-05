@@ -1,5 +1,8 @@
 {
-  "name": "@emdash-cms/template-blog-cloudflare",
+  "name": "emdash-theme-omarchy",
+  "description": "An Omarchy-style EmDash blog theme: Hyprland tiling windows, a Waybar top bar, and all of Omarchy's color palettes.",
+  "keywords": ["emdash", "emdash-theme", "astro", "omarchy", "hyprland", "cloudflare"],
+  "license": "MIT",
   "version": "0.0.3",
   "private": true,
   "type": "module",
@@ -11,7 +14,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "astro build && wrangler deploy",
-    "typecheck": "astro check"
+    "typecheck": "astro check",
+    "sync-palettes": "node scripts/sync-palettes.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.1",

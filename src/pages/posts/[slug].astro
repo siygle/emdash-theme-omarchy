@@ -114,7 +114,7 @@ const publishDate =
 	modifiedTime={post.data.updatedAt.toISOString()}
 	content={{ collection: "posts", id: post.data.id, slug }}
 >
-	<article class="article">
+	<article class="article is-flush is-active" data-window={`~/posts/${slug}.md`} data-window-meta="markdown">
 		{/* Hero: Full-width featured image */}
 		{
 			post.data.featured_image && (
@@ -258,7 +258,7 @@ const publishDate =
 		otherPostsWithTags.length > 0 && (
 			<section class="more-posts">
 				<div class="more-inner">
-					<h2 class="more-title">Continue reading</h2>
+					<h2 class="more-title prompt">continue reading</h2>
 					<div class="more-grid">
 						{otherPostsWithTags.map(
 							({ post: p, tags: postTags, bylines: postBylines }) => (
@@ -355,10 +355,10 @@ const publishDate =
 
 	/* Hero image - full width within container */
 	.article-hero {
-		margin: var(--spacing-16) var(--spacing-6);
-		border-radius: var(--radius-lg);
+		margin: 0;
 		overflow: hidden;
 		background: var(--color-surface);
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.article-hero img {
@@ -371,13 +371,11 @@ const publishDate =
 	/* Three-column grid */
 	.article-grid {
 		display: grid;
-		grid-template-columns:
-			var(--meta-col-width) minmax(0, var(--content-width))
-			var(--gutter-width);
+		grid-template-columns: var(--meta-col-width) minmax(0, var(--content-width)) var(--gutter-width);
 		gap: var(--spacing-10);
 		justify-content: center;
 		padding: 0 var(--spacing-6);
-		margin: var(--spacing-16) 0;
+		margin: var(--spacing-12) 0;
 	}
 
 	/* Left column: Meta */
@@ -536,11 +534,11 @@ const publishDate =
 	.article-content :global(blockquote) {
 		margin: 2em 0;
 		padding: var(--spacing-4) var(--spacing-6);
-		border-left: 3px solid var(--color-border);
+		border-left: 3px solid var(--color-quote);
 		background: var(--color-bg-subtle);
 		border-radius: 0 var(--radius) var(--radius) 0;
 		color: var(--color-text-secondary);
-		font-style: italic;
+		font-style: normal;
 	}
 
 	.article-content :global(pre) {
@@ -558,12 +556,14 @@ const publishDate =
 	.article-content :global(code) {
 		font-family: var(--font-mono);
 		font-size: 0.9em;
+		color: var(--color-code);
 		background: var(--color-surface);
 		padding: 0.2em 0.4em;
 		border-radius: var(--radius);
 	}
 
 	.article-content :global(pre code) {
+		color: inherit;
 		background: none;
 		padding: 0;
 	}
@@ -901,27 +901,27 @@ const publishDate =
 
 	/* More posts section */
 	.more-posts {
-		background: var(--color-bg-subtle);
-		padding: var(--spacing-16) 0;
-		margin-top: var(--spacing-16);
+		margin-top: calc(var(--wm-gap-in) * 2);
 	}
 
 	.more-inner {
-		max-width: var(--wide-width);
-		margin: 0 auto;
-		padding: 0 var(--spacing-6);
+		display: flex;
+		flex-direction: column;
+		gap: calc(var(--wm-gap-in) * 2);
 	}
 
 	.more-title {
-		font-size: var(--font-size-2xl);
-		font-weight: var(--font-weight-heading);
-		margin-bottom: var(--spacing-10);
+		padding: var(--spacing-1) var(--spacing-3);
+		font-size: var(--font-size-xs);
+		font-weight: 700;
+		background: var(--color-bg);
+		border: var(--wm-border-width) solid var(--wm-border);
 	}
 
 	.more-grid {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: var(--spacing-8);
+		gap: calc(var(--wm-gap-in) * 2);
 	}
 
 	/* Responsive */
@@ -943,8 +943,7 @@ const publishDate =
 
 	@media (max-width: 900px) {
 		.article-hero {
-			margin: var(--spacing-4) var(--spacing-4) var(--spacing-8);
-			border-radius: var(--radius);
+			margin: 0;
 		}
 
 		.article-grid {

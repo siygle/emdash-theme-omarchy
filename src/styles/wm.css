@@ -189,12 +189,18 @@
 
 	/* Code blocks and inline code from Portable Text */
 	.emdash-code pre,
+	.emdash-code code,
 	pre[class*="language-"] {
 		background: var(--color-bg-subtle);
 		color: var(--color-text);
 		border: 1px solid var(--color-border);
 		border-radius: 0;
 		font-family: var(--font-ui);
+	}
+
+	.emdash-code code {
+		background: transparent;
+		border: 0;
 	}
 
 	.emdash-code-filename {

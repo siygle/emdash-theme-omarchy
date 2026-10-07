@@ -33,7 +33,8 @@
 		--color-on-brand: var(--om-background);
 		--color-brand-ring: color-mix(in srgb, var(--color-brand) 25%, transparent);
 		--color-prompt: var(--om-green);
-		--color-code: var(--om-red);
+		/* Raw red fails contrast on Lupine, Miasma, Rose Pine, Nord, and others. */
+		--color-code: color-mix(in srgb, var(--om-red) 50%, var(--om-foreground));
 		--color-quote: var(--om-magenta);
 
 		/* Hyprland window manager */

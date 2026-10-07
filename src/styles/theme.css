@@ -33,3 +33,30 @@
 .nav-admin {
 	margin-inline-start: var(--spacing-2);
 }
+
+/*
+  EmDash Portable Text ships unlayered colors (#1e1e1e / #e0e0e0). On light
+  Omarchy palettes that text disappears against the panel. Unlayered
+  !important beats both that scoped CSS and the @layer wm defaults.
+*/
+.emdash-code pre {
+	background: var(--color-bg-subtle) !important;
+	color: var(--color-text) !important;
+	border-color: var(--color-border);
+}
+
+.emdash-code code,
+.emdash-code pre code {
+	color: var(--color-text) !important;
+	background: transparent !important;
+}
+
+.emdash-code-filename {
+	color: var(--color-text) !important;
+	background: var(--color-bg-subtle) !important;
+}
+
+.article-content blockquote,
+.page-content blockquote {
+	color: var(--color-text);
+}

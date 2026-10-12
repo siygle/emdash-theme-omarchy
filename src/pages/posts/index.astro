@@ -1,10 +1,13 @@
 ---
-import { getEmDashCollection, getTermsForEntries } from "emdash";
+import { getEmDashCollection, getSiteSettings, getTermsForEntries } from "emdash";
 import Base from "../../layouts/Base.astro";
 import { getReadingTime } from "../../utils/reading-time";
+import { resolvePostsPerPage } from "../../utils/site-identity";
 
 // Sort in the database rather than in JS — lets the DB use its index on
 // published_at and avoids a full-table scan on the client.
+const settings = await getSiteSettings();
+const postsPerPage = resolvePostsPerPage(settings);
 const cursor = Astro.url.searchParams.get("cursor") || undefined;
 const {
 	entries: posts,
@@ -12,7 +15,7 @@ const {
 	nextCursor,
 } = await getEmDashCollection("posts", {
 	orderBy: { published_at: "desc" },
-	limit: 20,
+	limit: postsPerPage,
 	cursor,
 });
 

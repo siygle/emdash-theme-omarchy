@@ -2,12 +2,14 @@
 import {
 	getTaxonomyTermsWithCacheHint,
 	getEmDashCollection,
+	getSiteSettings,
 	getTermsForEntries,
 	decodeSlug,
 } from "emdash";
 import Base from "../../layouts/Base.astro";
 import PostCard from "../../components/PostCard.astro";
 import { getReadingTime } from "../../utils/reading-time";
+import { resolvePostsPerPage } from "../../utils/site-identity";
 
 const slug = decodeSlug(Astro.params.slug);
 const termsResult = await getTaxonomyTermsWithCacheHint("category", {
@@ -27,7 +29,7 @@ const {
 } = await getEmDashCollection("posts", {
 	where: { category: term.slug },
 	orderBy: { published_at: "desc" },
-	limit: 20,
+	limit: resolvePostsPerPage(await getSiteSettings()),
 	cursor,
 });
 

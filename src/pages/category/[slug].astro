@@ -2,7 +2,7 @@
 import {
 	getTaxonomyTermsWithCacheHint,
 	getEmDashCollection,
-	getSiteSettings,
+	getSiteSettingsWithCacheHint,
 	getTermsForEntries,
 	decodeSlug,
 } from "emdash";
@@ -21,6 +21,7 @@ if (!term) {
 	return Astro.redirect("/404");
 }
 
+const { data: settings, cacheHint: settingsCacheHint } = await getSiteSettingsWithCacheHint();
 const cursor = Astro.url.searchParams.get("cursor") || undefined;
 const {
 	entries: posts,
@@ -29,13 +30,14 @@ const {
 } = await getEmDashCollection("posts", {
 	where: { category: term.slug },
 	orderBy: { published_at: "desc" },
-	limit: resolvePostsPerPage(await getSiteSettings()),
+	limit: resolvePostsPerPage(settings),
 	cursor,
 });
 
 if (Astro.cache?.enabled) {
 	Astro.cache.set(termsResult.cacheHint);
 	Astro.cache.set(cacheHint);
+	Astro.cache.set(settingsCacheHint);
 }
 
 // Single batched query for tags on every post in this category, rather

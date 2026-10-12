@@ -15,7 +15,13 @@ export interface BlogSiteIdentitySettings {
 const DEFAULT_SITE_TITLE = "My Blog";
 const DEFAULT_SITE_TAGLINE = "Thoughts, stories, and ideas.";
 
-/** Admin Settings → General → Posts per page. EmDash allows 1–100. */
+/**
+ * Settings → General → Posts per page.
+ * Docs: https://docs.emdashcms.com/guides/site-settings/
+ * Key: `postsPerPage` (https://docs.emdashcms.com/themes/porting-wp-themes/)
+ * Unset settings are omitted, so callers must keep a fallback.
+ * The settings API accepts integers from 1 to 100.
+ */
 export function resolvePostsPerPage(settings?: { postsPerPage?: number }, fallback = 20) {
 	const value = settings?.postsPerPage;
 	if (!Number.isFinite(value)) return fallback;
